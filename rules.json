@@ -1,0 +1,20 @@
+{
+  "predicate": "All",
+  "rules": [
+    {
+      "field": "From",
+      "predicate": "contains",
+      "value": "@happyfox.hire.trakstar.com"
+    },
+    {
+      "field": "Received",
+      "predicate": "greater than",
+      "value": 30,
+      "unit": "days"
+    }
+  ],
+  "actions": [
+    "mark_as_read",
+    "move_to:IMPORTANT"
+  ]
+}

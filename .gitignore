@@ -1,0 +1,34 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Databases
+*.sqlite3
+*.db
+emails.db
+
+# Environments
+.venv/
+env/
+venv/
+
+# VSCode/IDE
+.vscode/
+.idea/
+
+# OS Junk
+.DS_Store
+
+# Credentials & Tokens
+config/credentials.json
+*.token.json
+token.json
+client_secret.json
+credentials*.json
+secrets*.json
+
+# Backups & Logs
+*.log
+*.bak
+*.tmp
+*.swp
