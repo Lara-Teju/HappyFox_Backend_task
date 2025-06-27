@@ -4,7 +4,7 @@
     {
       "field": "From",
       "predicate": "contains",
-      "value": "Nirmal Bang"
+      "value": "@happyfox"
     },
     {
       "field": "Received",
