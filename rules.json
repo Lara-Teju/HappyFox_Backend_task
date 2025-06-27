@@ -4,17 +4,18 @@
     {
       "field": "From",
       "predicate": "contains",
-      "value": "@happyfox.hire.trakstar.com"
+      "value": "Nirmal Bang"
     },
     {
       "field": "Received",
-      "predicate": "greater than",
+      "predicate": "less than",
       "value": 30,
       "unit": "days"
     }
   ],
   "actions": [
     "mark_as_read",
-    "move_to:IMPORTANT"
+    "move_to:Sample"
   ]
 }
+

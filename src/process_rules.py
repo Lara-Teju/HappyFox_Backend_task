@@ -219,8 +219,14 @@ def process_rules(rules_path):
 
     for email in emails:
         # Evaluate all conditions
+        print(f"DEBUG: Email.from_address = {email.from_address!r}")
         results = [evaluate_rule(email, r) for r in rules]
+        print(f"DEBUG: rule_values = {[r['value'] for r in rules]},{results}")
+        print(f"DEBUG: rule_results = {results}")
         match = all(results) if overall == 'all' else any(results)
+
+        if match:
+            print(f" → Matched {email.id}, applying actions…")
 
         if not match:
             continue
