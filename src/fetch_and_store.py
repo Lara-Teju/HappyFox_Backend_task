@@ -50,7 +50,7 @@ class Email(Base):
     from_address = Column(String)
     to_address   = Column(String)
     subject      = Column(Text)
-    snippet      = Column(Text)  # Will now store full plain-text body
+    snippet      = Column(Text)  
     received_at  = Column(DateTime)
     processed_at = Column(DateTime, nullable=True)
 
@@ -110,7 +110,7 @@ def fetch_and_store(max_results=50):
                    .get(
                        userId='me',
                        id=msg_id,
-                       format='full'  # changed from 'metadata'
+                       format='full'  
                    )
                    .execute()
         )
@@ -124,7 +124,7 @@ def fetch_and_store(max_results=50):
             from_address = headers.get('From', ''),
             to_address   = headers.get('To', ''),
             subject      = headers.get('Subject', ''),
-            snippet      = full_body,  # ⬅️ Store full body here instead of actual snippet
+            snippet      = full_body,  
             received_at  = datetime.fromtimestamp(int(msg['internalDate']) / 1000)
         )
 
