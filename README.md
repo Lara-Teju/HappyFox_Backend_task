@@ -157,32 +157,5 @@ To avoid interacting with real Gmail accounts in tests:
 * All integration tests are isolated using in-memory DB
 * Gmail API not triggered during tests
 
----
 
-## 📅 Submission Checklist
 
-*
-
----
-
-## 🎥 Demo Video & GitHub
-
-* GitHub Repository: [https://github.com/yourusername/HappyFox\_Backend\_task](https://github.com/yourusername/HappyFox_Backend_task)
-* Demo Video: \[Link to YouTube or Drive Video Presentation & Walkthrough]
-
----
-
-## 🙏 Credits
-
-Created by Tejaswini R M as part of the HappyFox Pre-Placement Assignment.
-
----
-
-## 🎓 License
-
-This project is released for educational/demo purposes under the MIT License.
-Feel free to fork and adapt for personal use.
-
----
-
-If you face any issues setting it up or want to understand the logic further, feel free to raise an issue on the GitHub repo!
