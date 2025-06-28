@@ -55,7 +55,7 @@ HappyFox_Backend_task/
 
 ```bash
 # Clone the repo
-$ git clone https://github.com/yourusername/HappyFox_Backend_task.git
+$ git clone https://github.com/Lara-Teju/HappyFox_Backend_task.git
 $ cd HappyFox_Backend_task
 
 # Create virtual environment
