@@ -16,6 +16,9 @@ Usage:
 import os
 from datetime import datetime
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
 from googleapiclient.discovery import build
 from sqlalchemy import (
     create_engine, Column, String, Text, DateTime
@@ -24,18 +27,27 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import base64
 import quopri
+from dotenv import load_dotenv
+load_dotenv()
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+
 
 # -----------------------------------------------------------------------------
 # 1) CONFIGURATION
 # -----------------------------------------------------------------------------
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.modify'
-]
+SCOPES = os.getenv("SCOPES").split(",")
 
-BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CRED_PATH  = os.path.join(BASE_DIR, 'config', 'credentials.json')
-DB_PATH    = os.path.join(BASE_DIR, 'emails.db')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CRED_PATH = os.getenv('CRED_PATH')
+DB_PATH = os.getenv('DB_PATH')
 DB_URL     = f'sqlite:///{DB_PATH}'
 
 # -----------------------------------------------------------------------------
@@ -62,8 +74,26 @@ Session = sessionmaker(bind=engine)
 # 3) GMAIL AUTH & CLIENT CREATION
 # -----------------------------------------------------------------------------
 def get_gmail_service():
-    flow = InstalledAppFlow.from_client_secrets_file(CRED_PATH, SCOPES)
-    creds = flow.run_local_server(port=0)
+    token_path = os.getenv("TOKEN_PATH", "token.json")
+    
+    creds = None
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            logging.info("Refreshed expired token.")
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CRED_PATH, SCOPES)
+            creds = flow.run_local_server(port=0)
+            logging.info("New OAuth token obtained.")
+
+        # Save credentials for next time
+        with open(token_path, 'w') as token_file:
+            token_file.write(creds.to_json())
+            logging.info(f"Saved token to {token_path}.")
+
     return build('gmail', 'v1', credentials=creds)
 
 # -----------------------------------------------------------------------------
@@ -100,7 +130,7 @@ def fetch_and_store(max_results=50):
                .execute()
     )
     messages = response.get('messages', [])
-    print(f"Fetched {len(messages)} message IDs from Gmail.")
+    logging.info(f"Fetched {len(messages)} message IDs from Gmail.")
 
     for msg_meta in messages:
         msg_id = msg_meta['id']
@@ -131,7 +161,7 @@ def fetch_and_store(max_results=50):
         session.merge(email_row)
 
     session.commit()
-    print(f"Stored {len(messages)} emails into {DB_PATH}.")
+    logging.info(f"Stored {len(messages)} emails into {DB_PATH}.")
 
 # -----------------------------------------------------------------------------
 # 5) ENTRYPOINT

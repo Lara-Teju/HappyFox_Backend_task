@@ -2,12 +2,21 @@ import os
 from datetime import datetime
 from sqlalchemy import create_engine, Column, String, Text, DateTime as SATime
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
+load_dotenv()
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    handlers=[logging.StreamHandler()]
+)
 
 # ----------------------------------------------------------------
 # SETUP (adjust paths as needed)
 # ----------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'emails.db')
+DB_PATH = os.getenv('DB_PATH')
 DB_URL = f'sqlite:///{DB_PATH}'
 
 # Define the Email model (must match your original schema)

@@ -19,9 +19,12 @@ import os
 import json
 import argparse
 from datetime import datetime, timedelta
-
+from dotenv import load_dotenv
+load_dotenv()
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 
 from sqlalchemy import (
     create_engine, Text,String,Column, DateTime as SATime, update
@@ -29,17 +32,24 @@ from sqlalchemy import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+
 # -----------------------------------------------------------------------------
 # 1) CONFIGURATION & DB SETUP
 # -----------------------------------------------------------------------------
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.modify'
-]
+SCOPES = os.getenv("SCOPES").split(",")
 
-BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CRED_PATH  = os.path.join(BASE_DIR, 'config', 'credentials.json')
-DB_PATH    = os.path.join(BASE_DIR, 'emails.db')
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CRED_PATH = os.getenv('CRED_PATH')
+DB_PATH = os.getenv('DB_PATH')
 DB_URL     = f'sqlite:///{DB_PATH}'
 
 # Extend the Email model to include a processed_at column
@@ -64,9 +74,28 @@ Session = sessionmaker(bind=engine)
 # 2) AUTHENTICATE TO GMAIL
 # -----------------------------------------------------------------------------
 def get_gmail_service():
-    flow = InstalledAppFlow.from_client_secrets_file(CRED_PATH, SCOPES)
-    creds = flow.run_local_server(port=0)
+    token_path = os.getenv("TOKEN_PATH", "token.json")
+    
+    creds = None
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            logging.info("Refreshed expired token.")
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CRED_PATH, SCOPES)
+            creds = flow.run_local_server(port=0)
+            logging.info("New OAuth token obtained.")
+
+        # Save credentials for next time
+        with open(token_path, 'w') as token_file:
+            token_file.write(creds.to_json())
+            logging.info(f"Saved token to {token_path}.")
+
     return build('gmail', 'v1', credentials=creds)
+
 
 # -----------------------------------------------------------------------------
 # 3) PREDICATE FUNCTIONS
@@ -215,17 +244,19 @@ def process_rules(rules_path):
 
     # Fetch emails that haven’t been processed yet
     emails = session.query(Email).filter(Email.processed_at.is_(None)).all()
-    print(f"Loaded {len(emails)} unprocessed emails from DB.")
+    logging.info(f"Loaded {len(emails)} unprocessed emails from DB.")
 
     for email in emails:
         # Evaluate all conditions
-        print(f"DEBUG: Email.from_address = {email.from_address!r}")
+        logging.debug(f"DEBUG: Email.from_address = {email.from_address!r}")
         results = [evaluate_rule(email, r) for r in rules]
-        print(f"DEBUG: rule_values = {[r['value'] for r in rules]},{results}")
+        logging.debug(f"DEBUG: rule_values = {[r['value'] for r in rules]},{results}")
+        logging.debug(f"DEBUG: rule_results = {results}")
+
         match = all(results) if overall == 'all' else any(results)
 
         if match:
-            print(f" → Matched {email.id}, applying actions…")
+            logging.info(f" → Matched {email.id}, applying actions…")
 
         if not match:
             continue
@@ -240,7 +271,7 @@ def process_rules(rules_path):
                 _, label = action.split(':', 1)
                 move_to_label(service, email.id, label, label_cache)
             else:
-                print(f"Warning: Unsupported action '{action}'")
+                logging.warning(f"Warning: Unsupported action '{action}'")
 
         # Mark processed
         session.execute(
@@ -249,7 +280,7 @@ def process_rules(rules_path):
             values(processed_at=datetime.now())
         )
         session.commit()
-        print(f"Applied rules to {email.id}; actions: {actions}")
+        logging.info(f"Applied rules to {email.id}; actions: {actions}")
 
 # -----------------------------------------------------------------------------
 # 7) CLI ENTRYPOINT
